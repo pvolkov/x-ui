@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+
 	"x-ui/logger"
 	"x-ui/util/common"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/xtls/xray-core/proxy/vless"
 	"github.com/xtls/xray-core/proxy/vmess"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type XrayAPI struct {
@@ -33,7 +35,7 @@ func (x *XrayAPI) Init(apiPort int) (err error) {
 	if apiPort == 0 {
 		return common.NewError("xray api port wrong:", apiPort)
 	}
-	x.grpcClient, err = grpc.Dial(fmt.Sprintf("127.0.0.1:%v", apiPort), grpc.WithInsecure())
+	x.grpcClient, err = grpc.NewClient(fmt.Sprintf("127.0.0.1:%v", apiPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
@@ -159,8 +161,8 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {
 		return nil, nil, common.NewError("xray api is not initialized")
 	}
-	var trafficRegex = regexp.MustCompile("(inbound|outbound)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
-	var ClientTrafficRegex = regexp.MustCompile("(user)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
+	trafficRegex := regexp.MustCompile("(inbound|outbound)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
+	ClientTrafficRegex := regexp.MustCompile("(user)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
 
 	client := *x.StatsServiceClient
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

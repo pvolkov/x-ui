@@ -11,8 +11,7 @@
 
 **If you think this project is helpful to you, you may wish to give a**:star2:
 
-<img width="125" alt="image"
-src="https://github.com/alireza0/x-ui/assets/115543613/dd4f10dd-8bb0-40cf-846f-1fe1de7a6275">
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/alireza7)
 
 - USDT (TRC20): `TYTq73Gj6dJ67qe58JVPD9zpjW2cc9XgVz`
 - Tezos (XTZ):
@@ -43,10 +42,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/alireza0/x-ui/master/install.s
 
 ## Install Custom Version
 
-**Step 1:** To install your desired version, add the version to the end of the installation command. e.g., ver `1.6.4`:
+**Step 1:** To install your desired version, add the version to the end of the installation command. e.g., ver `1.8.0`:
 
 ```sh
-bash <(curl -Ls https://raw.githubusercontent.com/alireza0/x-ui/master/install.sh) 1.6.4
+bash <(curl -Ls https://raw.githubusercontent.com/alireza0/x-ui/master/install.sh) 1.8.0
 ```
 
 ## Manual Install & Upgrade
@@ -56,15 +55,32 @@ bash <(curl -Ls https://raw.githubusercontent.com/alireza0/x-ui/master/install.s
   
 ### Usage
 
-**Step 1:** First download the latest compressed package from https://github.com/alireza0/x-ui/releases, generally choose Architecture `amd64`
-
-**Step 2:** Then upload the compressed package to the server's `/root/` directory and login to the server with user `root`
-
-> If your server CPU architecture is not `amd64` replace it with the appropriate architecture
+1. To download the latest version of the compressed package directly to your server, run the following command:
 
 ```sh
 ARCH=$(uname -m)
-[[ "${ARCH}" == "s390x" ]] && XUI_ARCH="s390x" || [[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
+case "${ARCH}" in
+  x86_64 | x64 | amd64) XUI_ARCH="amd64" ;;
+  i*86 | x86) XUI_ARCH="386" ;;
+  armv8* | armv8 | arm64 | aarch64) XUI_ARCH="arm64" ;;
+  armv7* | armv7) XUI_ARCH="armv7" ;;
+  *) XUI_ARCH="amd64" ;;
+esac
+
+wget https://github.com/alireza0/x-ui/releases/latest/download/x-ui-linux-${XUI_ARCH}.tar.gz
+```
+
+2. Once the compressed package is downloaded, execute the following commands to install or upgrade x-ui:
+
+```sh
+ARCH=$(uname -m)
+case "${ARCH}" in
+  x86_64 | x64 | amd64) XUI_ARCH="amd64" ;;
+  i*86 | x86) XUI_ARCH="386" ;;
+  armv8* | armv8 | arm64 | aarch64) XUI_ARCH="arm64" ;;
+  armv7* | armv7) XUI_ARCH="armv7" ;;
+  *) XUI_ARCH="amd64" ;;
+esac
 cd /root/
 rm x-ui/ /usr/local/x-ui/ /usr/bin/x-ui -rf
 tar zxvf x-ui-linux-${XUI_ARCH}.tar.gz
@@ -92,7 +108,20 @@ systemctl restart x-ui
 curl -fsSL https://get.docker.com | sh
 ```
 
-**Step 2:** Install X-UI
+**Step 2:** Clone the Project Repository:
+
+   ```sh
+   git clone https://github.com/alireza0/x-ui.git
+   cd x-ui
+   ```
+
+**Step 3:** Start the Service
+
+   ```sh
+   docker compose up -d
+   ```
+
+   OR
 
 ```shell
 mkdir x-ui && cd x-ui
@@ -104,6 +133,24 @@ docker run -itd \
     --name x-ui --restart=unless-stopped \
     alireza7/x-ui:latest
 ```
+
+update to latest version
+
+   ```sh
+    cd x-ui
+    docker compose down
+    docker compose pull x-ui
+    docker compose up -d
+   ```
+
+remove x-ui from docker 
+
+   ```sh
+    docker stop x-ui
+    docker rm x-ui
+    cd --
+    rm -r x-ui
+   ```
 
 > Build your own image
 
@@ -141,10 +188,18 @@ docker build -t x-ui .
 
 ## Recommended OS
 
+- Ubuntu 20.04+
+- Debian 11+
 - CentOS 8+
-- Ubuntu 20+
-- Debian 10+
 - Fedora 36+
+- Arch Linux
+- Parch Linux
+- Manjaro
+- Armbian
+- AlmaLinux 9+
+- Rocky Linux 9+
+- Oracle Linux 8+
+- OpenSUSE Tubleweed
 
 ## Preview
 
@@ -177,6 +232,7 @@ docker build -t x-ui .
 | `POST` | `"/:id/delClient/:clientId"`       | Delete client by clientId\*               |
 | `POST` | `"/updateClient/:clientId"`        | Update client by clientId\*               |
 | `GET`  | `"/getClientTraffics/:email"`      | Get client's traffic                      |
+| `GET`  | `"/getClientTrafficsById/:id"`     | Get client's traffic By ID                |
 | `POST` | `"/:id/resetClientTraffic/:email"` | Reset client's traffic                    |
 | `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds            |
 | `POST` | `"/resetAllClientTraffics/:id"`    | Reset inbound clients traffics (-1: all)  |

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
 	"x-ui/database/model"
 	"x-ui/web/service"
 	"x-ui/web/session"
@@ -63,6 +64,7 @@ func (a *InboundController) getInbound(c *gin.Context) {
 	}
 	jsonObj(c, inbound, nil)
 }
+
 func (a *InboundController) getClientTraffics(c *gin.Context) {
 	email := c.Param("email")
 	clientTraffics, err := a.inboundService.GetClientTrafficByEmail(email)
@@ -73,6 +75,15 @@ func (a *InboundController) getClientTraffics(c *gin.Context) {
 	jsonObj(c, clientTraffics, nil)
 }
 
+func (a *InboundController) getClientTrafficsById(c *gin.Context) {
+	id := c.Param("id")
+	clientTraffics, err := a.inboundService.GetClientTrafficByID(id)
+	if err != nil {
+		jsonMsg(c, "Error getting traffics", err)
+		return
+	}
+	jsonObj(c, clientTraffics, nil)
+}
 func (a *InboundController) addInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
@@ -82,7 +93,11 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	}
 	user := session.GetLoginUser(c)
 	inbound.UserId = user.Id
-	inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+	} else {
+		inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+	}
 
 	needRestart := false
 	inbound, needRestart, err = a.inboundService.AddInbound(inbound)
@@ -144,7 +159,7 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, "Client(s) added", nil)
-	if err == nil && needRestart {
+	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
 }
@@ -165,7 +180,7 @@ func (a *InboundController) delInboundClient(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, "Client deleted", nil)
-	if err == nil && needRestart {
+	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
 }
@@ -188,7 +203,7 @@ func (a *InboundController) updateInboundClient(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, "Client updated", nil)
-	if err == nil && needRestart {
+	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
 }
@@ -208,8 +223,8 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
-	jsonMsg(c, "traffic reseted", nil)
-	if err == nil && needRestart {
+	jsonMsg(c, "traffic has been reset", nil)
+	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
 }
@@ -222,7 +237,7 @@ func (a *InboundController) resetAllTraffics(c *gin.Context) {
 	} else {
 		a.xrayService.SetToNeedRestart()
 	}
-	jsonMsg(c, "All traffics reseted", nil)
+	jsonMsg(c, "All traffics has been reset", nil)
 }
 
 func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
@@ -239,7 +254,7 @@ func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
 	} else {
 		a.xrayService.SetToNeedRestart()
 	}
-	jsonMsg(c, "All traffics of client reseted", nil)
+	jsonMsg(c, "All traffics of client has been reset", nil)
 }
 
 func (a *InboundController) delDepletedClients(c *gin.Context) {
@@ -253,7 +268,7 @@ func (a *InboundController) delDepletedClients(c *gin.Context) {
 		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
-	jsonMsg(c, "All delpeted clients are deleted", nil)
+	jsonMsg(c, "All depleted clients are deleted", nil)
 }
 
 func (a *InboundController) importInbound(c *gin.Context) {
@@ -266,7 +281,11 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbound.Id = 0
 	inbound.UserId = user.Id
-	inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+	} else {
+		inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+	}
 
 	for index := range inbound.ClientStats {
 		inbound.ClientStats[index].Id = 0
@@ -282,5 +301,5 @@ func (a *InboundController) importInbound(c *gin.Context) {
 }
 
 func (a *InboundController) onlines(c *gin.Context) {
-	jsonObj(c, a.inboundService.GetOnlineClinets(), nil)
+	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
 }
