@@ -810,7 +810,7 @@
                 this.spinning = spinning;
             },
             async getOutboundsTraffic() {
-                const msg = await HttpUtil.get("/panel/xray/getOutboundsTraffic");
+                const msg = await HttpUtil.get("/xui/xray/getOutboundsTraffic");
                 if (msg.success) {
                     this.outboundsTraffic = msg.obj;
                 }
