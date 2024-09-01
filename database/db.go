@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path"
 
@@ -18,45 +19,54 @@ import (
 
 var db *gorm.DB
 
+const (
+	defaultUsername = "admin"
+	defaultPassword = "admin"
+)
+
+func initModels() error {
+	models := []interface{}{
+		&model.User{},
+		&model.Inbound{},
+		&model.OutboundTraffics{},
+		&model.Setting{},
+		&model.InboundClientIps{},
+		&xray.ClientTraffic{},
+	}
+	for _, model := range models {
+		if err := db.AutoMigrate(model); err != nil {
+			log.Printf("Error auto migrating model: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
 func initUser() error {
-	err := db.AutoMigrate(&model.User{})
+	empty, err := isTableEmpty("users")
 	if err != nil {
+		log.Printf("Error checking if users table is empty: %v", err)
 		return err
 	}
-	var count int64
-	err = db.Model(&model.User{}).Count(&count).Error
-	if err != nil {
-		return err
-	}
-	if count == 0 {
+	if empty {
 		user := &model.User{
-			Username: "admin",
-			Password: "admin",
+			Username:    defaultUsername,
+			Password:    defaultPassword,
 		}
 		return db.Create(user).Error
 	}
 	return nil
 }
 
-func initInbound() error {
-	return db.AutoMigrate(&model.Inbound{})
-}
-
-func initOutbound() error {
-	return db.AutoMigrate(&model.OutboundTraffics{})
-}
-
-func initSetting() error {
-	return db.AutoMigrate(&model.Setting{})
-}
-
-func initClientTraffic() error {
-	return db.AutoMigrate(&xray.ClientTraffic{})
+func isTableEmpty(tableName string) (bool, error) {
+	var count int64
+	err := db.Table(tableName).Count(&count).Error
+	return count == 0, err
 }
 
 func InitDB(dbPath string) error {
 	dir := path.Dir(dbPath)
-	err := os.MkdirAll(dir, fs.ModeDir)
+	err := os.MkdirAll(dir, fs.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -77,24 +87,24 @@ func InitDB(dbPath string) error {
 		return err
 	}
 
-	err = initUser()
-	if err != nil {
+	if err := initModels(); err != nil {
 		return err
 	}
-	err = initInbound()
-	if err != nil {
-		return err
-	}
-	err = initSetting()
-	if err != nil {
+	if err := initUser(); err != nil {
 		return err
 	}
 
-	err = initClientTraffic()
-	if err != nil {
-		return err
-	}
+	return nil
+}
 
+func CloseDB() error {
+	if db != nil {
+		sqlDB, err := db.DB()
+		if err != nil {
+			return err
+		}
+		return sqlDB.Close()
+	}
 	return nil
 }
 
@@ -106,10 +116,10 @@ func IsNotFound(err error) bool {
 	return err == gorm.ErrRecordNotFound
 }
 
-func IsSQLiteDB(file io.Reader) (bool, error) {
+func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	signature := []byte("SQLite format 3\x00")
 	buf := make([]byte, len(signature))
-	_, err := file.Read(buf)
+	_, err := file.ReadAt(buf, 0)
 	if err != nil {
 		return false, err
 	}
