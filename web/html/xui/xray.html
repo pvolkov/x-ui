@@ -439,6 +439,9 @@
                                         <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='reality'" color="green">reality</a-tag>
                                     </template>
                                 </template>
+                                <template slot="traffic" slot-scope="text, outbound, index">
+                                    <a-tag color="green">[[ findOutboundTraffic(outbound) ]]</a-tag>
+                                </template>
                             </a-table>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-reverse" tab='{{ i18n "pages.xray.outbound.reverse"}}' style="padding-top: 20px;" force-render="true">
@@ -660,6 +663,7 @@
         { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
         { title: '{{ i18n "protocol"}}', align: 'center', width: 50, scopedSlots: { customRender: 'protocol' }  },
         { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}', align: 'center', width: 50, scopedSlots: { customRender: 'traffic' } },
     ];
 
     const reverseColumns = [
@@ -699,6 +703,7 @@
             oldXraySetting: '',
             xraySetting: '',
             inboundTags: [],
+            outboundsTraffic: [],
             saveBtnDisable: true,
             restartResult: '',
             showAlert: false,
@@ -803,6 +808,12 @@
         methods: {
             loading(spinning = true) {
                 this.spinning = spinning;
+            },
+            async getOutboundsTraffic() {
+                const msg = await HttpUtil.get("/panel/xray/getOutboundsTraffic");
+                if (msg.success) {
+                    this.outboundsTraffic = msg.obj;
+                }
             },
             async getXraySetting() {
                 this.loading(true);
@@ -961,6 +972,14 @@
                     return false;
                 }
                 return true;
+            },
+            findOutboundTraffic(o) {
+                for (const otraffic of this.outboundsTraffic) {
+                    if (otraffic.tag == o.tag) {
+                        return sizeFormat(otraffic.up) + ' / ' + sizeFormat(otraffic.down);
+                    }
+                }
+                return sizeFormat(0) + ' / ' + sizeFormat(0);
             },
             findOutboundAddress(o) {
                 serverObj = null;
@@ -1358,6 +1377,7 @@
             }
             await this.getXraySetting();
             await this.getXrayResult();
+            await this.getOutboundsTraffic();
             while (true) {
                 await PromiseUtil.sleep(1000);
                 this.saveBtnDisable = this.oldXraySetting === this.xraySetting;

@@ -212,6 +212,7 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 			continue
 		}
 		isInbound := matchs[1] == "inbound"
+		isOutbound := matchs[1] == "outbound"
 		tag := matchs[2]
 		isDown := matchs[3] == "downlink"
 		if tag == "api" {
@@ -221,6 +222,7 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 		if !ok {
 			traffic = &Traffic{
 				IsInbound: isInbound,
+				IsOutbound: isOutbound,
 				Tag:       tag,
 			}
 			tagTrafficMap[tag] = traffic
